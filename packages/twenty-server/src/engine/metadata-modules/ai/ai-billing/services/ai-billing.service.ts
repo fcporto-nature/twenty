@@ -1,8 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { type LanguageModelUsage } from 'ai';
+import { isDefined } from 'twenty-shared/utils';
+
 import { BillingUsageService } from 'src/engine/core-modules/billing/services/billing-usage.service';
 import { BillingService } from 'src/engine/core-modules/billing/services/billing.service';
+import { UsageLimitQuotaService } from 'src/engine/core-modules/usage-limit/services/usage-limit-quota.service';
+import { type UsageSpenders } from 'src/engine/core-modules/usage-limit/types/usage-spenders.type';
 
 import { USAGE_RECORDED } from 'src/engine/core-modules/usage/constants/usage-recorded.constant';
 import { UsageOperationType } from 'src/engine/core-modules/usage/enums/usage-operation-type.enum';
@@ -32,6 +36,7 @@ export class AiBillingService {
     private readonly billingService: BillingService,
     private readonly billingUsageService: BillingUsageService,
     private readonly usagePeriodService: UsagePeriodService,
+    private readonly usageLimitQuotaService: UsageLimitQuotaService,
   ) {}
 
   calculateCost(modelId: ModelId, billingInput: BillingUsageInput): number {
@@ -82,6 +87,14 @@ export class AiBillingService {
       });
     }
 
+    await this.usageLimitQuotaService.settle({
+      workspaceId,
+      resourceType: UsageResourceType.AI,
+      operationType,
+      spenders: { userWorkspaceId, agentId },
+      cost: creditsUsedMicro,
+    });
+
     await this.emitAiTokenUsageEvent(
       workspaceId,
       creditsUsedMicro,
@@ -97,23 +110,38 @@ export class AiBillingService {
     modelId: ModelId,
     billingInput: BillingUsageInput,
     workspaceId: string,
+    operationType: UsageOperationType,
+    spenders: UsageSpenders,
   ): Promise<{ hasNoMoreAvailableCredits: boolean }> {
-    if (!this.billingService.isBillingEnabled()) {
-      return { hasNoMoreAvailableCredits: false };
-    }
-
     const costInDollars = this.calculateCost(modelId, billingInput);
     const creditsUsedMicro = Math.round(
       convertDollarsToBillingCredits(costInDollars),
     );
 
-    const remainingCredits =
-      await this.billingUsageService.decrementAvailableCreditsInCache({
-        workspaceId,
-        usedCredits: creditsUsedMicro,
-      });
+    let hasNoMoreAvailableCredits = false;
 
-    return { hasNoMoreAvailableCredits: remainingCredits <= 0 };
+    if (this.billingService.isBillingEnabled()) {
+      const remainingCredits =
+        await this.billingUsageService.decrementAvailableCreditsInCache({
+          workspaceId,
+          usedCredits: creditsUsedMicro,
+        });
+
+      hasNoMoreAvailableCredits = remainingCredits <= 0;
+    }
+
+    const { exhausted } = await this.usageLimitQuotaService.settle({
+      workspaceId,
+      resourceType: UsageResourceType.AI,
+      operationType,
+      spenders,
+      cost: creditsUsedMicro,
+    });
+
+    return {
+      hasNoMoreAvailableCredits:
+        hasNoMoreAvailableCredits || isDefined(exhausted),
+    };
   }
 
   async billNativeWebSearchUsage(
@@ -144,6 +172,14 @@ export class AiBillingService {
         usedCredits: creditsUsedMicro,
       });
     }
+
+    await this.usageLimitQuotaService.settle({
+      workspaceId,
+      resourceType: UsageResourceType.AI,
+      operationType: UsageOperationType.WEB_SEARCH,
+      spenders: { userWorkspaceId },
+      cost: creditsUsedMicro,
+    });
 
     this.workspaceEventEmitter.emitCustomBatchEvent<UsageEvent>(
       USAGE_RECORDED,
