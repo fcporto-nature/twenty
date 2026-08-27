@@ -35,7 +35,6 @@ import { ApplicationVariableEntityService } from 'src/engine/core-modules/applic
 import { type ApplicationVariableCacheMaps } from 'src/engine/core-modules/application/application-variable/types/application-variable-cache-maps.type';
 import { isBillingExemptApplication } from 'src/engine/core-modules/application/application-marketplace/utils/is-billing-exempt-application.util';
 import { ApplicationTokenService } from 'src/engine/core-modules/auth/token/services/application-token.service';
-import { NO_BILLING_SUBSCRIPTION } from 'src/engine/core-modules/billing/constants/no-billing-subscription.constant';
 import { BillingUsageService } from 'src/engine/core-modules/billing/services/billing-usage.service';
 import { BillingService } from 'src/engine/core-modules/billing/services/billing.service';
 import { WorkspaceDomainsService } from 'src/engine/core-modules/domain/workspace-domains/services/workspace-domains.service';
@@ -48,6 +47,7 @@ import { USAGE_RECORDED } from 'src/engine/core-modules/usage/constants/usage-re
 import { UsageOperationType } from 'src/engine/core-modules/usage/enums/usage-operation-type.enum';
 import { UsageResourceType } from 'src/engine/core-modules/usage/enums/usage-resource-type.enum';
 import { UsageUnit } from 'src/engine/core-modules/usage/enums/usage-unit.enum';
+import { UsagePeriodService } from 'src/engine/core-modules/usage/services/usage-period.service';
 import { type UsageEvent } from 'src/engine/core-modules/usage/types/usage-event.type';
 import { findFlatEntityByIdInFlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/utils/find-flat-entity-by-id-in-flat-entity-maps.util';
 import { LogicFunctionExecutionMode } from 'src/engine/metadata-modules/logic-function/logic-function.entity';
@@ -98,6 +98,7 @@ export class LogicFunctionExecutorService {
     private readonly workspaceEventEmitter: WorkspaceEventEmitter,
     private readonly billingService: BillingService,
     private readonly billingUsageService: BillingUsageService,
+    private readonly usagePeriodService: UsagePeriodService,
     private readonly featureFlagService: FeatureFlagService,
     private readonly workspaceDomainsService: WorkspaceDomainsService,
     private readonly applicationService: ApplicationService,
@@ -607,24 +608,14 @@ export class LogicFunctionExecutorService {
       ? 0
       : 100;
 
-    let periodStart: Date | undefined;
+    const { periodStart } =
+      await this.usagePeriodService.getCurrentPeriod(workspaceId);
 
-    if (this.billingService.isBillingEnabled()) {
-      const { currentBillingSubscription } =
-        await this.workspaceCacheService.getOrRecompute(workspaceId, [
-          'currentBillingSubscription',
-        ]);
-
-      if (currentBillingSubscription !== NO_BILLING_SUBSCRIPTION) {
-        periodStart = currentBillingSubscription.currentPeriodStart;
-
-        if (creditsUsedMicro > 0) {
-          await this.billingUsageService.decrementAvailableCreditsInCache({
-            workspaceId,
-            usedCredits: creditsUsedMicro,
-          });
-        }
-      }
+    if (this.billingService.isBillingEnabled() && creditsUsedMicro > 0) {
+      await this.billingUsageService.decrementAvailableCreditsInCache({
+        workspaceId,
+        usedCredits: creditsUsedMicro,
+      });
     }
 
     this.workspaceEventEmitter.emitCustomBatchEvent<UsageEvent>(

@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { type LanguageModelUsage } from 'ai';
-import { NO_BILLING_SUBSCRIPTION } from 'src/engine/core-modules/billing/constants/no-billing-subscription.constant';
 import { BillingUsageService } from 'src/engine/core-modules/billing/services/billing-usage.service';
 import { BillingService } from 'src/engine/core-modules/billing/services/billing.service';
 
@@ -13,9 +12,9 @@ import { type UsageEvent } from 'src/engine/core-modules/usage/types/usage-event
 import { NATIVE_WEB_SEARCH_COST_PER_CALL_DOLLARS } from 'src/engine/metadata-modules/ai/ai-billing/constants/native-web-search-cost-per-call-dollars';
 import { computeCostBreakdown } from 'src/engine/metadata-modules/ai/ai-billing/utils/compute-cost-breakdown.util';
 import { convertDollarsToBillingCredits } from 'src/engine/metadata-modules/ai/ai-billing/utils/convert-dollars-to-billing-credits.util';
+import { UsagePeriodService } from 'src/engine/core-modules/usage/services/usage-period.service';
 import { AiModelRegistryService } from 'src/engine/metadata-modules/ai/ai-models/services/ai-model-registry.service';
 import { type ModelId } from 'src/engine/metadata-modules/ai/ai-models/types/model-id.type';
-import { WorkspaceCacheService } from 'src/engine/workspace-cache/services/workspace-cache.service';
 import { WorkspaceEventEmitter } from 'src/engine/workspace-event-emitter/workspace-event-emitter';
 
 export type BillingUsageInput = {
@@ -32,7 +31,7 @@ export class AiBillingService {
     private readonly aiModelRegistryService: AiModelRegistryService,
     private readonly billingService: BillingService,
     private readonly billingUsageService: BillingUsageService,
-    private readonly workspaceCacheService: WorkspaceCacheService,
+    private readonly usagePeriodService: UsagePeriodService,
   ) {}
 
   calculateCost(modelId: ModelId, billingInput: BillingUsageInput): number {
@@ -136,22 +135,14 @@ export class AiBillingService {
       `Native web search billing: ${nativeWebSearchCallCount} calls, $${costInDollars.toFixed(4)}`,
     );
 
-    let periodStart: Date | undefined;
+    const { periodStart } =
+      await this.usagePeriodService.getCurrentPeriod(workspaceId);
 
     if (this.billingService.isBillingEnabled()) {
-      const { currentBillingSubscription } =
-        await this.workspaceCacheService.getOrRecompute(workspaceId, [
-          'currentBillingSubscription',
-        ]);
-
-      if (currentBillingSubscription !== NO_BILLING_SUBSCRIPTION) {
-        periodStart = currentBillingSubscription.currentPeriodStart;
-
-        await this.billingUsageService.decrementAvailableCreditsInCache({
-          workspaceId,
-          usedCredits: creditsUsedMicro,
-        });
-      }
+      await this.billingUsageService.decrementAvailableCreditsInCache({
+        workspaceId,
+        usedCredits: creditsUsedMicro,
+      });
     }
 
     this.workspaceEventEmitter.emitCustomBatchEvent<UsageEvent>(
@@ -180,19 +171,8 @@ export class AiBillingService {
     agentId?: string | null,
     userWorkspaceId?: string | null,
   ): Promise<void> {
-    let periodStart: Date | undefined;
-
-    if (this.billingService.isBillingEnabled()) {
-      const { currentBillingSubscription } =
-        await this.workspaceCacheService.getOrRecompute(workspaceId, [
-          'currentBillingSubscription',
-        ]);
-
-      periodStart =
-        currentBillingSubscription === NO_BILLING_SUBSCRIPTION
-          ? undefined
-          : currentBillingSubscription.currentPeriodStart;
-    }
+    const { periodStart } =
+      await this.usagePeriodService.getCurrentPeriod(workspaceId);
 
     this.workspaceEventEmitter.emitCustomBatchEvent<UsageEvent>(
       USAGE_RECORDED,
