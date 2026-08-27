@@ -35,6 +35,10 @@ jest.mock('@/page-layout/components/PageLayoutLeftPanel', () => ({
   PageLayoutLeftPanel: () => null,
 }));
 
+jest.mock('@/page-layout/components/PageLayoutRecordIdentifierBar', () => ({
+  PageLayoutRecordIdentifierBar: () => null,
+}));
+
 jest.mock('@/page-layout/components/PageLayoutTabList', () => ({
   PageLayoutTabList: () => null,
 }));
