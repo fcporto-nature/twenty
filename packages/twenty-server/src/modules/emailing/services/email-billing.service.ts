@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { BillingUsageService } from 'src/engine/core-modules/billing/services/billing-usage.service';
 import { BillingService } from 'src/engine/core-modules/billing/services/billing.service';
+import { UsageLimitQuotaService } from 'src/engine/core-modules/usage-limit/services/usage-limit-quota.service';
 import { USAGE_RECORDED } from 'src/engine/core-modules/usage/constants/usage-recorded.constant';
 import { UsageOperationType } from 'src/engine/core-modules/usage/enums/usage-operation-type.enum';
 import { UsageResourceType } from 'src/engine/core-modules/usage/enums/usage-resource-type.enum';
@@ -20,14 +21,24 @@ export class EmailBillingService {
     private readonly billingService: BillingService,
     private readonly billingUsageService: BillingUsageService,
     private readonly usagePeriodService: UsagePeriodService,
+    private readonly usageLimitQuotaService: UsageLimitQuotaService,
   ) {}
 
   async hasEmailCredits(workspaceId: string): Promise<boolean> {
     return this.billingUsageService.hasAvailableCredits(workspaceId);
   }
 
-  async validateEmailCreditsOrThrow(workspaceId: string): Promise<void> {
+  async validateEmailCreditsOrThrow(
+    workspaceId: string,
+    userWorkspaceId?: string | null,
+  ): Promise<void> {
     await this.billingUsageService.hasAvailableCreditsOrThrow(workspaceId);
+    await this.usageLimitQuotaService.assertCanConsume({
+      workspaceId,
+      resourceType: UsageResourceType.EMAIL,
+      operationType: UsageOperationType.EMAIL_SEND,
+      spenders: { userWorkspaceId },
+    });
   }
 
   async billSentEmails({
@@ -59,6 +70,14 @@ export class EmailBillingService {
         usedCredits: creditsUsedMicro,
       });
     }
+
+    await this.usageLimitQuotaService.settle({
+      workspaceId,
+      resourceType: UsageResourceType.EMAIL,
+      operationType: UsageOperationType.EMAIL_SEND,
+      spenders: { userWorkspaceId },
+      cost: creditsUsedMicro,
+    });
 
     this.workspaceEventEmitter.emitCustomBatchEvent<UsageEvent>(
       USAGE_RECORDED,

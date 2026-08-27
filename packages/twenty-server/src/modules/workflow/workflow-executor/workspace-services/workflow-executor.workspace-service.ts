@@ -20,6 +20,7 @@ import { USAGE_RECORDED } from 'src/engine/core-modules/usage/constants/usage-re
 import { UsageOperationType } from 'src/engine/core-modules/usage/enums/usage-operation-type.enum';
 import { UsageResourceType } from 'src/engine/core-modules/usage/enums/usage-resource-type.enum';
 import { UsageUnit } from 'src/engine/core-modules/usage/enums/usage-unit.enum';
+import { UsageLimitQuotaService } from 'src/engine/core-modules/usage-limit/services/usage-limit-quota.service';
 import { type UsageEvent } from 'src/engine/core-modules/usage/types/usage-event.type';
 import { UsagePeriodService } from 'src/engine/core-modules/usage/services/usage-period.service';
 import { WorkspaceEventEmitter } from 'src/engine/workspace-event-emitter/workspace-event-emitter';
@@ -62,6 +63,7 @@ export class WorkflowExecutorWorkspaceService {
     private readonly billingService: BillingService,
     private readonly billingUsageService: BillingUsageService,
     private readonly usagePeriodService: UsagePeriodService,
+    private readonly usageLimitQuotaService: UsageLimitQuotaService,
     private readonly exceptionHandlerService: ExceptionHandlerService,
     private readonly metricsService: MetricsService,
     @InjectMessageQueue(MessageQueue.workflowQueue)
@@ -332,6 +334,14 @@ export class WorkflowExecutorWorkspaceService {
         usedCredits: 100,
       });
     }
+
+    await this.usageLimitQuotaService.settle({
+      workspaceId,
+      resourceType: UsageResourceType.WORKFLOW,
+      operationType: UsageOperationType.WORKFLOW_EXECUTION,
+      spenders: { workflowId },
+      cost: 100,
+    });
 
     this.workspaceEventEmitter.emitCustomBatchEvent<UsageEvent>(
       USAGE_RECORDED,

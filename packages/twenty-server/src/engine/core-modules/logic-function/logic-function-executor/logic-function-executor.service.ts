@@ -46,6 +46,7 @@ import { TwentyConfigService } from 'src/engine/core-modules/twenty-config/twent
 import { USAGE_RECORDED } from 'src/engine/core-modules/usage/constants/usage-recorded.constant';
 import { UsageOperationType } from 'src/engine/core-modules/usage/enums/usage-operation-type.enum';
 import { UsageResourceType } from 'src/engine/core-modules/usage/enums/usage-resource-type.enum';
+import { UsageLimitQuotaService } from 'src/engine/core-modules/usage-limit/services/usage-limit-quota.service';
 import { UsageUnit } from 'src/engine/core-modules/usage/enums/usage-unit.enum';
 import { UsagePeriodService } from 'src/engine/core-modules/usage/services/usage-period.service';
 import { type UsageEvent } from 'src/engine/core-modules/usage/types/usage-event.type';
@@ -99,6 +100,7 @@ export class LogicFunctionExecutorService {
     private readonly billingService: BillingService,
     private readonly billingUsageService: BillingUsageService,
     private readonly usagePeriodService: UsagePeriodService,
+    private readonly usageLimitQuotaService: UsageLimitQuotaService,
     private readonly featureFlagService: FeatureFlagService,
     private readonly workspaceDomainsService: WorkspaceDomainsService,
     private readonly applicationService: ApplicationService,
@@ -617,6 +619,14 @@ export class LogicFunctionExecutorService {
         usedCredits: creditsUsedMicro,
       });
     }
+
+    await this.usageLimitQuotaService.settle({
+      workspaceId,
+      resourceType: UsageResourceType.LOGIC_FUNCTION,
+      operationType: UsageOperationType.CODE_EXECUTION,
+      spenders: { logicFunctionId: flatLogicFunction.id },
+      cost: creditsUsedMicro,
+    });
 
     this.workspaceEventEmitter.emitCustomBatchEvent<UsageEvent>(
       USAGE_RECORDED,

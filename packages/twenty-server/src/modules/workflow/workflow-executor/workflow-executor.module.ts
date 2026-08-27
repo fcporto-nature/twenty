@@ -21,6 +21,7 @@ import { MailSenderActionModule } from 'src/modules/workflow/workflow-executor/w
 import { RecordCRUDActionModule } from 'src/modules/workflow/workflow-executor/workflow-actions/record-crud/record-crud-action.module';
 import { WorkflowExecutorWorkspaceService } from 'src/modules/workflow/workflow-executor/workspace-services/workflow-executor.workspace-service';
 import { WorkflowRunModule } from 'src/modules/workflow/workflow-runner/workflow-run/workflow-run.module';
+import { UsageLimitModule } from 'src/engine/core-modules/usage-limit/usage-limit.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { WorkflowRunModule } from 'src/modules/workflow/workflow-runner/workflow
     FormActionModule,
     BillingModule,
     UsageModule,
+    UsageLimitModule,
     FilterActionModule,
     IfElseActionModule,
     IteratorActionModule,
