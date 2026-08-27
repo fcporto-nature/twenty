@@ -2645,6 +2645,9 @@ export default {
             "isSystemSideEffect": [
                 8
             ],
+            "isFirstTabPinned": [
+                8
+            ],
             "createdAt": [
                 4
             ],
@@ -11123,6 +11126,9 @@ export default {
             ],
             "objectMetadataId": [
                 3
+            ],
+            "isFirstTabPinned": [
+                8
             ],
             "tabs": [
                 444
