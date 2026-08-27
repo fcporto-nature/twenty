@@ -17,8 +17,7 @@ describe('buildUsageEventEnvelopes', () => {
   it('maps each usage event to a usageEvent envelope carrying the workspace + columns', () => {
     const envelopes = buildUsageEventEnvelopes('ws-1', [
       usageEvent({
-        userWorkspaceId: 'uw-1',
-        resourceId: 'agent-1',
+        spenders: { userWorkspaceId: 'uw-1', agentId: 'agent-1' },
         resourceContext: 'gpt-4o',
       }),
     ]);
@@ -28,21 +27,26 @@ describe('buildUsageEventEnvelopes', () => {
     expect(envelopes[0].row).toMatchObject({
       workspaceId: 'ws-1',
       userWorkspaceId: 'uw-1',
+      agentId: 'agent-1',
       resourceType: UsageResourceType.AI,
       operationType: UsageOperationType.AI_CHAT_TOKEN,
       quantity: 1500,
       creditsUsedMicro: 7500,
-      resourceId: 'agent-1',
       resourceContext: 'gpt-4o',
     });
   });
 
-  it('defaults the optional string columns to empty and omits periodStart when absent', () => {
+  it('defaults every spender column to empty and omits periodStart when absent', () => {
     const [envelope] = buildUsageEventEnvelopes('ws-1', [usageEvent()]);
 
     expect(envelope.row).toMatchObject({
       userWorkspaceId: '',
-      resourceId: '',
+      apiKeyId: '',
+      applicationId: '',
+      agentId: '',
+      workflowId: '',
+      workflowRunId: '',
+      logicFunctionId: '',
       resourceContext: '',
     });
     expect(

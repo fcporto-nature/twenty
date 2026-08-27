@@ -88,7 +88,7 @@ export class EmailBillingService {
           creditsUsedMicro,
           quantity: sentEmailCount,
           unit: UsageUnit.INVOCATION,
-          userWorkspaceId: userWorkspaceId || null,
+          spenders: { userWorkspaceId },
           periodStart,
         },
       ],

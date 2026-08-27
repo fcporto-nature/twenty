@@ -10,23 +10,32 @@ export const buildUsageEventEnvelopes = (
 ): WorkspaceEventEnvelope[] => {
   const now = formatDateTimeForClickHouse(new Date());
 
-  return usageEvents.map((usageEvent) => ({
-    table: 'usageEvent',
-    row: {
-      timestamp: now,
-      workspaceId,
-      periodStart: usageEvent.periodStart
-        ? formatDateTimeForClickHouse(usageEvent.periodStart)
-        : undefined,
-      userWorkspaceId: usageEvent.userWorkspaceId ?? '',
-      resourceType: usageEvent.resourceType,
-      operationType: usageEvent.operationType,
-      quantity: usageEvent.quantity,
-      unit: usageEvent.unit,
-      creditsUsedMicro: usageEvent.creditsUsedMicro,
-      resourceId: usageEvent.resourceId ?? '',
-      resourceContext: usageEvent.resourceContext ?? '',
-      metadata: {},
-    },
-  }));
+  return usageEvents.map((usageEvent) => {
+    const spenders = usageEvent.spenders ?? {};
+
+    return {
+      table: 'usageEvent',
+      row: {
+        timestamp: now,
+        workspaceId,
+        periodStart: usageEvent.periodStart
+          ? formatDateTimeForClickHouse(usageEvent.periodStart)
+          : undefined,
+        userWorkspaceId: spenders.userWorkspaceId ?? '',
+        apiKeyId: spenders.apiKeyId ?? '',
+        applicationId: spenders.applicationId ?? '',
+        agentId: spenders.agentId ?? '',
+        workflowId: spenders.workflowId ?? '',
+        workflowRunId: spenders.workflowRunId ?? '',
+        logicFunctionId: spenders.logicFunctionId ?? '',
+        resourceType: usageEvent.resourceType,
+        operationType: usageEvent.operationType,
+        quantity: usageEvent.quantity,
+        unit: usageEvent.unit,
+        creditsUsedMicro: usageEvent.creditsUsedMicro,
+        resourceContext: usageEvent.resourceContext ?? '',
+        metadata: {},
+      },
+    };
+  });
 };

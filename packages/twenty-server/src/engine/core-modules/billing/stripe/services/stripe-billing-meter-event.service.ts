@@ -39,8 +39,15 @@ export class StripeBillingMeterEventService {
       execution_type: usageEvent.operationType.toLowerCase(),
     };
 
-    if (usageEvent.resourceId) {
-      payload.resource_id = usageEvent.resourceId;
+    // Keeps the payload shape of the former polymorphic resourceId column.
+    const resourceId =
+      usageEvent.spenders?.agentId ??
+      usageEvent.spenders?.workflowId ??
+      usageEvent.spenders?.logicFunctionId ??
+      usageEvent.spenders?.applicationId;
+
+    if (resourceId) {
+      payload.resource_id = resourceId;
     }
 
     if (usageEvent.resourceContext) {

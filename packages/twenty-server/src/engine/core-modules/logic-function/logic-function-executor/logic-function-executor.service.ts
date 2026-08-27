@@ -624,7 +624,10 @@ export class LogicFunctionExecutorService {
       workspaceId,
       resourceType: UsageResourceType.LOGIC_FUNCTION,
       operationType: UsageOperationType.CODE_EXECUTION,
-      spenders: { logicFunctionId: flatLogicFunction.id },
+      spenders: {
+        logicFunctionId: flatLogicFunction.id,
+        applicationId: flatApplication.id,
+      },
       cost: creditsUsedMicro,
     });
 
@@ -637,7 +640,10 @@ export class LogicFunctionExecutorService {
           creditsUsedMicro,
           quantity: 1,
           unit: UsageUnit.INVOCATION,
-          resourceId: flatLogicFunction.id,
+          spenders: {
+            logicFunctionId: flatLogicFunction.id,
+            applicationId: flatApplication.id,
+          },
           periodStart,
         },
       ],

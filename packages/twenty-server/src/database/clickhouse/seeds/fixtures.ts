@@ -19,12 +19,17 @@ export type UsageEventFixture = {
   workspaceId: string;
   periodStart: string;
   userWorkspaceId: string;
+  apiKeyId: string;
+  applicationId: string;
+  agentId: string;
+  workflowId: string;
+  workflowRunId: string;
+  logicFunctionId: string;
   resourceType: string;
   operationType: string;
   quantity: number;
   unit: string;
   creditsUsedMicro: number;
-  resourceId: string;
   resourceContext: string;
   metadata: Record<string, never>;
 };
@@ -232,7 +237,12 @@ const buildUsageEventFixtures = (): UsageEventFixture[] => {
             quantity: Math.round(op.baseQuantity * jitter),
             unit: op.unit,
             creditsUsedMicro: Math.round(op.baseCreditsMicro * jitter),
-            resourceId: '',
+            apiKeyId: '',
+            applicationId: '',
+            agentId: '',
+            workflowId: '',
+            workflowRunId: '',
+            logicFunctionId: '',
             resourceContext,
             metadata: {},
           });

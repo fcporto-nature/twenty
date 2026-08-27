@@ -78,7 +78,12 @@ export const EVENT_LOG_TYPES: Record<EventLogTable, EventLogTypeDefinition> = {
           quantity: record.quantity,
           unit: record.unit,
           creditsUsedMicro: record.creditsUsedMicro,
-          resourceId: record.resourceId,
+          apiKeyId: record.apiKeyId,
+          applicationId: record.applicationId,
+          agentId: record.agentId,
+          workflowId: record.workflowId,
+          workflowRunId: record.workflowRunId,
+          logicFunctionId: record.logicFunctionId,
           resourceContext: record.resourceContext,
         },
       };

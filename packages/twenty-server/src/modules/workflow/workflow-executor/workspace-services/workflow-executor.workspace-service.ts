@@ -352,7 +352,7 @@ export class WorkflowExecutorWorkspaceService {
           creditsUsedMicro: 100,
           quantity: 1,
           unit: UsageUnit.INVOCATION,
-          resourceId: workflowId,
+          spenders: { workflowId },
           periodStart,
         },
       ],

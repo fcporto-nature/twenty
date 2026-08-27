@@ -38,7 +38,11 @@ type PeriodParams = {
 
 const ALLOWED_GROUP_BY_FIELDS = [
   'userWorkspaceId',
-  'resourceId',
+  'apiKeyId',
+  'applicationId',
+  'agentId',
+  'workflowId',
+  'logicFunctionId',
   'operationType',
   'resourceType',
   'resourceContext',

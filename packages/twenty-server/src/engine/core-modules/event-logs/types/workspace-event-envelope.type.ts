@@ -30,12 +30,17 @@ export type UsageEventRow = {
   workspaceId: string;
   periodStart?: string;
   userWorkspaceId: string;
+  apiKeyId: string;
+  applicationId: string;
+  agentId: string;
+  workflowId: string;
+  workflowRunId: string;
+  logicFunctionId: string;
   resourceType: string;
   operationType: string;
   quantity: number;
   unit: string;
   creditsUsedMicro: number;
-  resourceId: string;
   resourceContext: string;
   metadata: Record<string, unknown>;
 };
